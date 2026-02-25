@@ -13,7 +13,7 @@ import Task1 (Tree(..))
 
 -- | Ordering enumeration
 data Ordering = LT | EQ | GT
-  deriving Show
+  deriving (Show, Eq)
 
 -- | Binary comparison function indicating whether first argument is less, equal or
 -- greater than the second one (returning 'LT', 'EQ' or 'GT' respectively)
@@ -33,7 +33,10 @@ type Cmp a = a -> a -> Ordering
 -- GT
 --
 compare :: Ord a => Cmp a
-compare = error "TODO: define compare"
+compare x y
+  | x < y     = LT
+  | x == y    = EQ
+  | otherwise = GT
 
 -- | Conversion of list to binary search tree
 -- using given comparison function
@@ -46,9 +49,9 @@ compare = error "TODO: define compare"
 -- Leaf
 --
 listToBST :: Cmp a -> [a] -> Tree a
-listToBST = error "TODO: define listToBST"
+listToBST _ [] = Leaf
+listToBST cmp (x:xs) = tinsert cmp x (listToBST cmp xs)-- | Conversion from binary search tree to list
 
--- | Conversion from binary search tree to list
 --
 -- Resulting list will be sorted
 -- if given tree is valid BST with respect
@@ -61,8 +64,10 @@ listToBST = error "TODO: define listToBST"
 -- >>> bstToList Leaf
 -- []
 --
+
 bstToList :: Tree a -> [a]
-bstToList = error "TODO: define bstToList"
+bstToList Leaf = []
+bstToList (Branch x left right) = bstToList left ++ [x] ++ bstToList right
 
 -- | Tests whether given tree is a valid binary search tree
 -- with respect to given comparison function
@@ -76,8 +81,25 @@ bstToList = error "TODO: define bstToList"
 -- >>> isBST compare (Branch 5 (Branch 1 Leaf Leaf) (Branch 3 Leaf Leaf))
 -- False
 --
+
 isBST :: Cmp a -> Tree a -> Bool
-isBST = error "TODO: define isBST"
+isBST _ Leaf = True
+isBST cmp (Branch x left right) =
+  allLeft cmp x left && allRight cmp x right && isBST cmp left && isBST cmp right
+  where
+    allLeft :: Cmp a -> a -> Tree a -> Bool
+    allLeft _ _ Leaf = True
+    allLeft cmpFn val (Branch nodeVal leftSub rightSub) = 
+      cmpFn nodeVal val == LT && 
+      allLeft cmpFn val leftSub && 
+      allLeft cmpFn val rightSub
+    
+    allRight :: Cmp a -> a -> Tree a -> Bool
+    allRight _ _ Leaf = True
+    allRight cmpFn val (Branch nodeVal leftSub rightSub) = 
+      cmpFn nodeVal val == GT && 
+      allRight cmpFn val leftSub && 
+      allRight cmpFn val rightSub
 
 -- | Searches given binary search tree for
 -- given value with respect to given comparison
@@ -95,7 +117,12 @@ isBST = error "TODO: define isBST"
 -- Just 2
 --
 tlookup :: Cmp a -> a -> Tree a -> Maybe a
-tlookup = error "TODO: define tlookup"
+tlookup _ _ Leaf = Nothing
+tlookup cmp x (Branch y left right) =
+  case cmp x y of
+    LT -> tlookup cmp x left
+    EQ -> Just y
+    GT -> tlookup cmp x right
 
 -- | Inserts given value into given binary search tree
 -- preserving its BST properties with respect to given comparison
@@ -113,7 +140,12 @@ tlookup = error "TODO: define tlookup"
 -- Branch 'a' Leaf Leaf
 --
 tinsert :: Cmp a -> a -> Tree a -> Tree a
-tinsert = error "TODO: define tinsert"
+tinsert _ x Leaf = Branch x Leaf Leaf
+tinsert cmp x (Branch y left right) =
+  case cmp x y of
+    LT -> Branch y (tinsert cmp x left) right
+    EQ -> Branch x left right
+    GT -> Branch y left (tinsert cmp x right)
 
 -- | Deletes given value from given binary search tree
 -- preserving its BST properties with respect to given comparison
@@ -128,5 +160,25 @@ tinsert = error "TODO: define tinsert"
 -- >>> tdelete compare 'a' Leaf
 -- Leaf
 --
+
 tdelete :: Cmp a -> a -> Tree a -> Tree a
-tdelete = error "TODO: define tdelete"
+tdelete _ _ Leaf = Leaf
+tdelete cmp x (Branch y left right) =
+  case cmp x y of
+    LT -> Branch y (tdelete cmp x left) right
+    GT -> Branch y left (tdelete cmp x right)
+    EQ -> deleteNode left right
+  where
+    deleteNode :: Tree a -> Tree a -> Tree a
+    deleteNode l Leaf = l
+    deleteNode Leaf r = r
+    deleteNode l r =
+      let (minVal, newRight) = extractMin r
+      in Branch minVal l newRight
+    
+    extractMin :: Tree a -> (a, Tree a)
+    extractMin (Branch val Leaf rightSubtree) = (val, rightSubtree)
+    extractMin (Branch val leftSubtree rightSubtree) = 
+      let (minVal, newLeft) = extractMin leftSubtree
+      in (minVal, Branch val newLeft rightSubtree)
+    extractMin Leaf = error "empty tree"

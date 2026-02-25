@@ -37,9 +37,18 @@ torder :: Order    -- ^ Order of resulting traversal
        -> Maybe a  -- ^ Optional leaf value
        -> Tree a   -- ^ Tree to traverse
        -> [a]      -- ^ List of values in specified order
-torder = error "TODO: define torder"
+torder order maybeLeaf tree = 
+  case tree of
+    Leaf -> case maybeLeaf of
+              Nothing -> []
+              Just leaf -> [leaf]
+    Branch val left right ->
+      case order of
+        PreOrder -> val : torder order maybeLeaf left ++ torder order maybeLeaf right
+        InOrder  -> torder order maybeLeaf left ++ [val] ++ torder order maybeLeaf right
+        PostOrder -> torder order maybeLeaf left ++ torder order maybeLeaf right ++ [val]
 
--- | Returns values of given 'Forest' separated by optional separator
+--- | Returns values of given 'Forest' separated by optional separator
 -- where each 'Tree' is traversed in specified 'Order' with optional leaf value
 --
 -- Usage example:
@@ -56,5 +65,12 @@ forder :: Order     -- ^ Order of tree traversal
        -> Maybe a   -- ^ Optional leaf value
        -> Forest a  -- ^ List of trees to traverse
        -> [a]       -- ^ List of values in specified tree order
-forder = error "TODO: define forder"
-
+forder order maybeSeparator maybeLeaf forest =
+  case forest of
+    [] -> []
+    [tree] -> torder order maybeLeaf tree
+    (tree:rest) -> 
+      torder order maybeLeaf tree ++ 
+      case maybeSeparator of
+        Nothing -> forder order maybeSeparator maybeLeaf rest
+        Just sep -> sep : forder order maybeSeparator maybeLeaf rest

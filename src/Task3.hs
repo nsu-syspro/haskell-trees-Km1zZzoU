@@ -9,6 +9,8 @@ import Prelude hiding (compare, foldl, foldr, Ordering(..))
 
 import Task1 (Tree(..))
 
+import Task2 (Ordering, Ordering(LT, EQ, GT), tlookup, tinsert, tdelete)
+
 -- * Type definitions
 
 -- | Tree-based map
@@ -25,8 +27,10 @@ type Map k v = Tree (k, v)
 -- >>> listToMap [] :: Map Int Char
 -- Leaf
 --
+
 listToMap :: Ord k => [(k, v)] -> Map k v
-listToMap = error "TODO: define listToMap"
+listToMap [] = Leaf
+listToMap ((k, v):xs) = minsert k v (listToMap xs)
 
 -- | Conversion from 'Map' to association list sorted by key
 --
@@ -38,7 +42,9 @@ listToMap = error "TODO: define listToMap"
 -- []
 --
 mapToList :: Map k v -> [(k, v)]
-mapToList = error "TODO: define mapToList"
+mapToList Leaf = []
+mapToList (Branch (k, v) left right) =
+  mapToList left ++ [(k, v)] ++ mapToList right
 
 -- | Searches given 'Map' for a value associated with given key
 --
@@ -52,8 +58,21 @@ mapToList = error "TODO: define mapToList"
 -- >>> mlookup 'a' Leaf
 -- Nothing
 --
+
+keyToPair :: k -> (k, v)
+keyToPair k = (k, undefined)
+
+compareKeys :: Ord k => (k, v1) -> (k, v2) -> Task2.Ordering
+compareKeys (k1, _) (k2, _)
+  | k1 < k2   = Task2.LT
+  | k1 == k2  = Task2.EQ
+  | otherwise = Task2.GT
+
 mlookup :: Ord k => k -> Map k v -> Maybe v
-mlookup = error "TODO: define mlookup"
+mlookup key m = 
+  case Task2.tlookup compareKeys (keyToPair key) m of
+    Nothing -> Nothing
+    Just (_, v) -> Just v
 
 -- | Inserts given key and value into given 'Map'
 --
@@ -70,7 +89,7 @@ mlookup = error "TODO: define mlookup"
 -- Branch (1,'X') Leaf Leaf
 --
 minsert :: Ord k => k -> v -> Map k v -> Map k v
-minsert = error "TODO: define minsert"
+minsert key value = Task2.tinsert compareKeys (key, value)
 
 -- | Deletes given key from given 'Map'
 --
@@ -84,5 +103,7 @@ minsert = error "TODO: define minsert"
 -- >>> mdelete 'a' Leaf
 -- Leaf
 --
+
 mdelete :: Ord k => k -> Map k v -> Map k v
-mdelete = error "TODO: define mdelete"
+mdelete key = Task2.tdelete compareKeys (keyToPair key)
+
